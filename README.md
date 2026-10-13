@@ -4,7 +4,10 @@ District-level forecasting of human disease outbreak risk, joining human
 surveillance, climate, livestock population and animal disease data into one
 weekly panel and one map.
 
+**[Open the live dashboard →](https://onehealth-early-warning.vercel.app)**
+
 **Hack4Pashudhan · Track 5 (One Health Dashboard) · PGIVER Jaipur**
+Lakkarsu Nanditha · Ch. Vignesh Reddy
 
 ---
 

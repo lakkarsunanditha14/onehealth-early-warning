@@ -7,22 +7,20 @@
 India watches animal disease, human disease and climate in three systems that never talk to each other.
 This builds the layer that does — one weekly table, one model, one map.
 
-[![Live dashboard](https://img.shields.io/badge/Live_dashboard-open-146B5F?style=for-the-badge)](https://onehealth-early-warning.vercel.app)
-&nbsp;
-[![Lift](https://img.shields.io/badge/lift-5.4%C3%97_over_chance-2F9C8C?style=flat-square)](#results)
-[![Districts](https://img.shields.io/badge/districts-295_%C2%B7_9_states-2F9C8C?style=flat-square)](#data)
-[![Panel](https://img.shields.io/badge/district--weeks-123%2C015-2F9C8C?style=flat-square)](#data)
+[![Open the dashboard](https://img.shields.io/badge/%20%20Open%20the%20dashboard%20%20-0E5A4F?style=for-the-badge&logoColor=white)](https://onehealth-early-warning.vercel.app)
+
+[![Lift](https://img.shields.io/badge/lift-5.4%C3%97_over_chance-2A8E7E?style=flat-square)](#results)
+[![Districts](https://img.shields.io/badge/districts-295_%C2%B7_9_states-2A8E7E?style=flat-square)](#data)
+[![Panel](https://img.shields.io/badge/district--weeks-123%2C015-2A8E7E?style=flat-square)](#data)
 [![Python](https://img.shields.io/badge/python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](requirements.txt)
 [![Licence](https://img.shields.io/badge/licence-MIT-6A7179?style=flat-square)](#licence)
-
-### 🌐 [onehealth-early-warning.vercel.app](https://onehealth-early-warning.vercel.app)
 
 <sub>Hack4Pashudhan · Track 5 (One Health Dashboard) · PGIVER Jaipur</sub><br>
 <sub>Lakkarsu Nanditha · Ch. Vignesh Reddy</sub>
 
-<img src="docs/dashboard.gif" alt="The dashboard playing through 2021-22: 295 districts shifting from cool to hot as the monsoon arrives, with a ranked watch list beside the map" width="100%">
+<img src="docs/dashboard.gif" alt="The dashboard playing through 2021-22: 295 districts shifting shade week by week as the monsoon arrives, with a ranked watch list and three analytics panels" width="100%">
 
-<sub>Two years of forecasts in fifteen seconds — the map cools in winter and ignites through the monsoon. Not an animation we drew: that is the model's weekly output, played back.</sub>
+<sub>Two years of forecasts in fifteen seconds. Not an animation we drew — that is the model's weekly output, played back.</sub>
 
 </div>
 
@@ -193,9 +191,54 @@ Delhi, Himachal Pradesh and Uttarakhand · 2015–2022, ISO weeks · **123,015 d
 
 ## Architecture
 
-```
-public sources ──▶ Python pipeline ──▶ static JSON ──▶ Leaflet dashboard
-                   (weekly, GitHub Actions)
+```mermaid
+flowchart LR
+  subgraph S["Public sources"]
+    direction TB
+    A1["EpiClim<br/><sub>IDSP human outbreaks</sub>"]
+    A2["NASA POWER<br/><sub>temp · rain · humidity</sub>"]
+    A3["Livestock Census<br/>FMD vaccination · serosurvey"]
+    A4["District boundaries<br/><sub>GeoJSON</sub>"]
+  end
+
+  subgraph P["Python pipeline — weekly, GitHub Actions"]
+    direction TB
+    B1["skeleton<br/><sub>295 districts × 417 weeks</sub>"]
+    B2["join<br/><sub>one panel · 123,015 rows</sub>"]
+    B3["features<br/><sub>season · own history · neighbours</sub>"]
+    B4["HistGradientBoosting<br/><sub>train 2015–19 · test 2021–22</sub>"]
+    B5["validate<br/><sub>5 seeds · bootstrap · leave-one-state-out</sub>"]
+    B1 --> B2 --> B3 --> B4 --> B5
+  end
+
+  subgraph O["Static output — no server"]
+    direction TB
+    C1["predictions.json"]
+    C2["validation.json"]
+    C3["districts.geojson"]
+  end
+
+  D["Leaflet dashboard<br/><sub>map · watch list · analytics</sub>"]
+
+  A1 --> B2
+  A2 --> B2
+  A3 --> B2
+  A4 --> B1
+  B4 --> C1
+  B5 --> C2
+  B1 --> C3
+  C1 --> D
+  C2 --> D
+  C3 --> D
+
+  classDef src fill:#E8F6F3,stroke:#5FC0AE,color:#0E5A4F
+  classDef pipe fill:#F2F6F5,stroke:#2A8E7E,color:#132A26
+  classDef out fill:#A5DDD2,stroke:#2A8E7E,color:#0E5A4F
+  classDef app fill:#0E5A4F,stroke:#0E5A4F,color:#ffffff
+  class A1,A2,A3,A4 src
+  class B1,B2,B3,B4,B5 pipe
+  class C1,C2,C3 out
+  class D app
 ```
 
 **There is no application server.** The data changes weekly; serving it live would add a deployment
@@ -264,23 +307,22 @@ python -m http.server 8000     # from the project root
 # open http://localhost:8000/dashboard/
 ```
 
-## Limitations
+## Scope, and what unlocks the next version
 
-- **No zoonotic link is demonstrated.** The open human data covers diseases that are not
-  livestock-transmitted. Brucellosis and anthrax are reported too rarely in open sources to model at
-  district-week resolution.
-- **It cannot see emergence.** Outbreaks with no recent local or neighbouring activity — 255 of 473,
-  over half — are caught 2.0% of the time. That is a property of an activity-based feature set, not a
-  bug to tune away.
-- **Reported, not observed.** Surveillance records outbreaks that were *reported*; a better-staffed
-  district reports more at the same true burden. Removing district identity limits, but does not
-  eliminate, this.
-- **Most flagged districts see nothing.** Precision at the operating threshold is 8.6%. This is a
-  triage ranking for scarce inspection capacity, not a prediction that a named district will have an
-  outbreak.
-- **Human data ends in 2022.** EpiClim's coverage stops there; later IDSP records are not openly
-  available in clean form.
-- **A triage aid, not a diagnosis**, and not a replacement for surveillance.
+Every boundary below is a property of what is *openly published* in India today, not of the method.
+Each one has a named key, and most of those keys already exist inside a government department.
+
+| Where the current version stops | What opens it |
+|---|---|
+| **The zoonotic link is not yet demonstrated.** The open human feed covers diarrhoeal disease, dengue, malaria and cholera — none livestock-transmitted. Brucellosis and anthrax are reported too rarely in open sources to model weekly. | District-level brucellosis and anthrax records from NADRS. The animal layer is already built, mapped and joined; it is waiting on a disease that actually crosses species. |
+| **It reads continuation, not emergence.** Outbreaks with no recent local or neighbouring signal are caught 2.0% of the time, against 57.8% when some signal is present. | A leading indicator the open data does not carry: veterinary case reports, animal-movement permits, or pharmacy sales. Each is collected already — none is published. |
+| **Reported, not observed.** Surveillance records what was *reported*; a better-staffed district reports more at the same true burden. We remove district identity so the model cannot simply learn reporting intensity. | Staffing or testing-volume denominators per district, which would let reporting effort be modelled rather than suppressed. |
+| **Human data ends in 2022.** EpiClim's published coverage stops there. | A standing IHIP data-sharing agreement. The pipeline is already scheduled weekly; it refreshes the moment the feed does. |
+
+**Read as a triage ranking, not a prediction.** At the operating threshold 8.6% of flagged
+district-weeks see an outbreak against a 1.6% base rate. The claim is that this is a far better order
+to work down than any other available — not that a named district will have an outbreak. Treating it
+as the latter is the one misuse that would do harm.
 
 ## Repository
 

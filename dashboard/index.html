@@ -39,6 +39,11 @@
   .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
         padding:14px;box-shadow:var(--shadow)}
   .mapcard{flex:1;display:flex;flex-direction:column;min-height:0;padding:12px}
+  .analytics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;flex:none}
+  @media (max-width:900px){.analytics{grid-template-columns:1fr}}
+  .chart{padding:12px 13px 11px}
+  .chart .muted{margin-top:6px}
+  .chart svg{display:block;overflow:visible}
   #map{flex:1;border-radius:9px;background:#E7EDEC;min-height:340px}
 
   .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -136,10 +141,31 @@
         <div class="scalelabels" id="scalelabels"></div>
         <div class="keyrow">
           <span><span class="sw" style="background:var(--nodata)"></span>no data</span>
-          <span><span class="sw" style="background:#132A26"></span>outbreak reported that week</span>
+          <span><span class="sw" style="background:var(--alert)"></span>outbreak reported that week</span>
           <span><span class="sw" style="background:var(--b3)"></span>monsoon weeks (Jun–Sep)</span>
           <span style="margin-left:auto;color:var(--ink-3)">Hover a district for detail · click to open it</span>
         </div>
+      </div>
+    </div>
+
+    <div class="analytics">
+      <div class="card chart">
+        <h2>Risk through the year</h2>
+        <svg id="chSeason" viewBox="0 0 300 108" width="100%" height="108" role="img"
+             aria-label="Average forecast risk and reported outbreak rate by month"></svg>
+        <div class="muted" id="chSeasonNote"></div>
+      </div>
+      <div class="card chart">
+        <h2>Where risk concentrates</h2>
+        <svg id="chState" viewBox="0 0 300 108" width="100%" height="108" role="img"
+             aria-label="Mean forecast risk by state"></svg>
+        <div class="muted">Mean forecast risk across each state's districts and weeks.</div>
+      </div>
+      <div class="card chart">
+        <h2>Alerts against reality</h2>
+        <svg id="chTrack" viewBox="0 0 300 108" width="100%" height="108" role="img"
+             aria-label="Districts above the alert threshold each week against reported outbreaks"></svg>
+        <div class="muted" id="chTrackNote"></div>
       </div>
     </div>
   </div>
@@ -218,10 +244,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-// Teal -> green -> amber -> ember. Multi-hue so the top of the scale carries real
-// visual weight, but still monotonic in lightness, so it reads as one ordered scale
-// rather than two competing colours.
-const RAMP = ['#E3F5EF','#9BE3C4','#F5CE5B','#F0914A','#DC5340'];
+// One hue, five steps. A choropleth is read by comparing a district against its
+// neighbours, and multiple hues turn that comparison into a guess.
+const RAMP = ['#E8F6F3','#A5DDD2','#5FC0AE','#2A8E7E','#0E5A4F'];
 const BANDS = ['Very low','Low','Moderate','High','Very high'];
 const LAYERS = {
   risk:    {title:'Predicted outbreak risk over the next 4 weeks',
@@ -254,10 +279,8 @@ const colorFor = v => (v == null || isNaN(v)) ? '#ECEFEE' : RAMP[bandOf(v, mode)
 function style(f) {
   const d = P.districts[key(f)];
   const out = d && d.outbreak[wi];
-  // Reported outbreaks get a dark halo rather than a red one: red now lives at the
-  // top of the risk ramp, and two reds on one map read as the same thing.
   return {fillColor: colorFor(valueFor(d)), fillOpacity: .93,
-          weight: out ? 2.6 : .5, color: out ? '#132A26' : '#fff'};
+          weight: out ? 2.4 : .5, color: out ? '#B3401F' : '#fff'};
 }
 
 function why(d) {
@@ -479,6 +502,109 @@ function renderValidation(V) {
         <span class="pct">${(x.risk*100).toFixed(0)}%</span></td></tr>`).join('');
 }
 
+// Three views the map cannot give: the seasonal shape, where risk sits
+// geographically, and whether the alerts actually track reported outbreaks.
+// All derived from predictions.json in the browser — no extra data file.
+const MONTHS = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+const path = (pts, close) =>
+  pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ') + (close || '');
+
+function renderCharts() {
+  const ds = Object.values(P.districts), W = P.weeks.length;
+  const month = P.weeks.map(w => +w.slice(5, 7) - 1);
+
+  // 1. Seasonality — mean risk and mean reported-outbreak rate per calendar month.
+  const rSum = Array(12).fill(0), rN = Array(12).fill(0),
+        oSum = Array(12).fill(0), oN = Array(12).fill(0);
+  for (const d of ds) for (let i = 0; i < W; i++) {
+    const m = month[i];
+    if (d.risk[i] != null) { rSum[m] += d.risk[i]; rN[m]++; }
+    oSum[m] += d.outbreak[i]; oN[m]++;
+  }
+  const risk = rSum.map((s, i) => rN[i] ? s / rN[i] : 0);
+  const obs = oSum.map((s, i) => oN[i] ? s / oN[i] : 0);
+  const sx = i => 16 + i * (272 / 11), sy = (v, max) => 92 - (v / max) * 74;
+  const rMax = Math.max(...risk) * 1.08, oMax = Math.max(...obs) * 1.15;
+  const rPts = risk.map((v, i) => [sx(i), sy(v, rMax)]);
+  const oPts = obs.map((v, i) => [sx(i), sy(v, oMax)]);
+  document.getElementById('chSeason').innerHTML = `
+    <defs><linearGradient id="gRisk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${RAMP[3]}" stop-opacity=".40"/>
+      <stop offset="100%" stop-color="${RAMP[3]}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <rect x="${sx(5)}" y="14" width="${sx(8) - sx(5)}" height="78" fill="${RAMP[1]}" opacity=".45" rx="3"/>
+    <text x="${(sx(5) + sx(8)) / 2}" y="11" font-size="7" fill="var(--ink-3)" text-anchor="middle">monsoon</text>
+    <path d="${path(rPts)} L${sx(11)} 92 L${sx(0)} 92 Z" fill="url(#gRisk)"/>
+    <path d="${path(rPts)}" fill="none" stroke="${RAMP[4]}" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${path(oPts)}" fill="none" stroke="var(--alert)" stroke-width="1.5"
+          stroke-dasharray="3 2.5" stroke-linejoin="round"/>
+    ${MONTHS.map((m, i) => `<text x="${sx(i)}" y="103" font-size="7.5" fill="var(--ink-3)"
+       text-anchor="middle">${m}</text>`).join('')}`;
+  const peak = obs.indexOf(Math.max(...obs)), low = obs.indexOf(Math.min(...obs));
+  document.getElementById('chSeasonNote').innerHTML =
+    `<span style="color:${RAMP[4]}">■</span> forecast risk &nbsp;
+     <span style="color:var(--alert)">▬</span> outbreaks actually reported &nbsp;·&nbsp;
+     ${(obs[peak] / Math.max(obs[low], 1e-9)).toFixed(0)}× more outbreaks in
+     ${['January','February','March','April','May','June','July','August','September','October','November','December'][peak]}
+     than ${['January','February','March','April','May','June','July','August','September','October','November','December'][low]}.`;
+
+  // 2. Risk by state.
+  const byState = {};
+  for (const d of ds) {
+    const a = byState[d.state] || (byState[d.state] = [0, 0]);
+    for (const r of d.risk) if (r != null) { a[0] += r; a[1]++; }
+  }
+  const st = Object.entries(byState).map(([s, [sum, n]]) => [s, sum / n])
+    .sort((a, b) => b[1] - a[1]);
+  const bMax = st[0][1] * 1.02, bh = 96 / st.length;
+  document.getElementById('chState').innerHTML = st.map(([s, v], i) => `
+    <rect x="74" y="${6 + i * bh}" width="${(v / bMax) * 196}" height="${bh - 3.4}"
+          rx="2" fill="${RAMP[bandOf(v, 'risk')]}"/>
+    <text x="70" y="${6 + i * bh + bh / 2 + 1.6}" font-size="7.5" fill="var(--ink-2)"
+          text-anchor="end">${s.length > 14 ? s.slice(0, 13) + '…' : s}</text>
+    <text x="${76 + (v / bMax) * 196}" y="${6 + i * bh + bh / 2 + 1.6}" font-size="7.5"
+          fill="var(--ink-3)">${(v * 100).toFixed(0)}%</text>`).join('');
+
+  // 3. Alerts against reality — do the weeks we flag most districts coincide with
+  // the weeks outbreaks actually get reported? Scaled independently; the shape is
+  // the claim, not the levels.
+  const cut = P.meta.alert_threshold;
+  const flagged = Array(W).fill(0), reported = Array(W).fill(0);
+  for (const d of ds) for (let i = 0; i < W; i++) {
+    if (d.risk[i] != null && d.risk[i] >= cut) flagged[i]++;
+    reported[i] += d.outbreak[i];
+  }
+  const fMax = Math.max(...flagged, 1), oM = Math.max(...reported, 1);
+  const tx = i => 6 + i * (288 / (W - 1));
+  const fPts = flagged.map((v, i) => [tx(i), 90 - (v / fMax) * 72]);
+  const oPts2 = reported.map((v, i) => [tx(i), 90 - (v / oM) * 72]);
+  document.getElementById('chTrack').innerHTML = `
+    <defs><linearGradient id="gFlag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${RAMP[3]}" stop-opacity=".45"/>
+      <stop offset="100%" stop-color="${RAMP[3]}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${path(fPts)} L${tx(W - 1)} 90 L${tx(0)} 90 Z" fill="url(#gFlag)"/>
+    <path d="${path(fPts)}" fill="none" stroke="${RAMP[4]}" stroke-width="1.6"/>
+    <path d="${path(oPts2)}" fill="none" stroke="var(--alert)" stroke-width="1.3" opacity=".85"/>
+    <line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)" stroke-width="1"/>
+    <text x="6" y="101" font-size="7.5" fill="var(--ink-3)">${P.weeks[0].slice(0, 4)}</text>
+    <text x="294" y="101" font-size="7.5" fill="var(--ink-3)" text-anchor="end">${P.weeks[W - 1].slice(0, 4)}</text>`;
+  // Correlation of the two weekly series: one number for "do the peaks line up".
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const mf = mean(flagged), mo = mean(reported);
+  let num = 0, df = 0, dor = 0;
+  for (let i = 0; i < W; i++) {
+    num += (flagged[i] - mf) * (reported[i] - mo);
+    df += (flagged[i] - mf) ** 2; dor += (reported[i] - mo) ** 2;
+  }
+  const r = num / Math.sqrt(df * dor || 1);
+  document.getElementById('chTrackNote').innerHTML =
+    `<span style="color:${RAMP[4]}">■</span> districts flagged &nbsp;
+     <span style="color:var(--alert)">▬</span> outbreaks reported &nbsp;·&nbsp;
+     the two weekly series move together at <b>r = ${r.toFixed(2)}</b>.`;
+}
+
 function buildTicks() {
   const n = P.weeks.length;
   let html = '', run = null;
@@ -546,6 +672,7 @@ Promise.all([
   s.max = P.weeks.length - 1;
   s.oninput = () => { wi = +s.value; draw(); };
   buildTicks();
+  renderCharts();
 
   document.getElementById('tabs').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;

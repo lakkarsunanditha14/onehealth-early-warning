@@ -1,28 +1,63 @@
 <div align="center">
 
+<img src="https://readme-typing-svg.demolab.com?font=IBM+Plex+Mono&weight=600&size=27&duration=3500&pause=900&color=2A8E7E&center=true&vCenter=true&width=820&height=46&lines=Four+weeks+of+warning%2C+295+districts;One+Health%2C+joined+at+last" alt="Four weeks of warning, 295 districts" />
+
 # One Health Early Warning
 
-**Which districts are most likely to report a disease outbreak in the next four weeks?**
+### Forecasting District Disease Outbreak Risk from Animal, Human and Climate Surveillance
 
-India watches animal disease, human disease and climate in three systems that never talk to each other.
-This builds the layer that does — one weekly table, one model, one map.
+**A failed forecast is not a failed week. A missing one is.**
 
-[![Open the dashboard](https://img.shields.io/badge/%20%20Open%20the%20dashboard%20%20-0E5A4F?style=for-the-badge&logoColor=white)](https://onehealth-early-warning.vercel.app)
+India watches animal disease, human disease and climate in three systems that never talk to each
+other. This builds the layer that does — one weekly table, one model, one map — and ranks the
+districts an officer should look at next.
 
-[![Lift](https://img.shields.io/badge/lift-5.4%C3%97_over_chance-2A8E7E?style=flat-square)](#results)
-[![Districts](https://img.shields.io/badge/districts-295_%C2%B7_9_states-2A8E7E?style=flat-square)](#data)
-[![Panel](https://img.shields.io/badge/district--weeks-123%2C015-2A8E7E?style=flat-square)](#data)
-[![Python](https://img.shields.io/badge/python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](requirements.txt)
-[![Licence](https://img.shields.io/badge/licence-MIT-6A7179?style=flat-square)](#licence)
+<br>
 
-<sub>Hack4Pashudhan · Track 5 (One Health Dashboard) · PGIVER Jaipur</sub><br>
-<sub>Lakkarsu Nanditha</sub>
+![Python](https://img.shields.io/badge/PYTHON-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2b2b2b)
+![scikit-learn](https://img.shields.io/badge/SCIKIT--LEARN-1.5-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white&labelColor=2b2b2b)
+![pandas](https://img.shields.io/badge/PANDAS-2.2-150458?style=for-the-badge&logo=pandas&logoColor=white&labelColor=2b2b2b)
+![Leaflet](https://img.shields.io/badge/LEAFLET-1.9-199900?style=for-the-badge&logo=leaflet&logoColor=white&labelColor=2b2b2b)
+![Vercel](https://img.shields.io/badge/VERCEL-live-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=2b2b2b)
+
+![Lift](https://img.shields.io/badge/lift-5.4%C3%97_over_chance-0E5A4F)
+![Transfer](https://img.shields.io/badge/unseen_states-4.7%C3%97-2A8E7E)
+![Panel](https://img.shields.io/badge/district--weeks-123%2C015-5FC0AE?labelColor=555)
+![Districts](https://img.shields.io/badge/districts-295_%C2%B7_9_states-5FC0AE?labelColor=555)
+![Rejected](https://img.shields.io/badge/alternatives_tested_and_rejected-4-B3401F?labelColor=555)
+![Self-checks](https://img.shields.io/badge/every_script-self--checked-C97B2E?labelColor=555)
+
+![Hackathon](https://img.shields.io/badge/Hack4Pashudhan-Track_5_·_One_Health-0E5A4F?style=flat-square)
+
+<br>
+
+**[Open the dashboard](https://onehealth-early-warning.vercel.app)**
+&nbsp;·&nbsp; [Results](#results)
+&nbsp;·&nbsp; [What failed](#what-we-found-including-what-failed)
+&nbsp;·&nbsp; [Architecture](#architecture)
+&nbsp;·&nbsp; [Data](#data)
+&nbsp;·&nbsp; [Run it](#reproducing)
+
+<br>
 
 <img src="docs/dashboard.gif" alt="The dashboard playing through 2021-22: 295 districts shifting shade week by week as the monsoon arrives, with a ranked watch list and three analytics panels" width="100%">
 
 <sub>Two years of forecasts in fifteen seconds. Not an animation we drew — that is the model's weekly output, played back.</sub>
 
 </div>
+
+---
+
+## Read this first
+
+> **This forecasts *reported* outbreaks, and it is a ranking, not a prediction.**
+>
+> The model scores every district-week and sorts them. At the operating threshold, **8.6% of flagged
+> district-weeks see an outbreak against a 1.6% background rate** — a far better order to work down
+> than any alternative available, but not a claim that a named district *will* have an outbreak.
+>
+> Every figure below comes from **2021–22, a period held out of training entirely.** Nothing here is
+> measured on data the model has seen.
 
 ---
 
@@ -192,34 +227,35 @@ Delhi, Himachal Pradesh and Uttarakhand · 2015–2022, ISO weeks · **123,015 d
 ## Architecture
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontSize":"19px","fontFamily":"IBM Plex Sans, Segoe UI, sans-serif","clusterBkg":"#FAFCFC","clusterBorder":"#C9DCD8"},"flowchart":{"nodeSpacing":46,"rankSpacing":92,"padding":18,"useMaxWidth":false}}}%%
+%%{init: {"theme":"base","themeVariables":{"fontSize":"15px","fontFamily":"IBM Plex Sans, Segoe UI, sans-serif","lineColor":"#5FC0AE","clusterBkg":"transparent","clusterBorder":"#3C5A54","edgeLabelBackground":"#13433C","tertiaryColor":"transparent","titleColor":"#8FBDB3","textColor":"#CFE2DE","nodeTextColor":"#E8F6F3"},"flowchart":{"nodeSpacing":28,"rankSpacing":62,"padding":10,"curve":"basis"}}}%%
 flowchart LR
-  subgraph S["Public sources"]
+
+  subgraph SRC ["&nbsp; ① &nbsp;PUBLIC SOURCES &nbsp;"]
     direction TB
-    A1["EpiClim<br/><sub>IDSP human outbreaks</sub>"]
-    A2["NASA POWER<br/><sub>temp · rain · humidity</sub>"]
-    A3["Livestock Census<br/>FMD vaccination · serosurvey"]
-    A4["District boundaries<br/><sub>GeoJSON</sub>"]
+    A1["🧫 &nbsp;<b>EpiClim / IDSP</b><br>human outbreaks<br>district · weekly"]
+    A2["🌧️ &nbsp;<b>NASA POWER</b><br>temp · rain · humidity<br>district · daily"]
+    A3["🐄 &nbsp;<b>Livestock Census</b><br>FMD vaccination<br>FMD serosurvey"]
+    A4["🗺️ &nbsp;<b>Boundaries</b><br>GeoJSON polygons"]
   end
 
-  subgraph P["Python pipeline — weekly, GitHub Actions"]
+  subgraph PIPE ["&nbsp; ② &nbsp;PYTHON PIPELINE &nbsp;·&nbsp; re-runs every Monday &nbsp;"]
     direction TB
-    B1["skeleton<br/><sub>295 districts × 417 weeks</sub>"]
-    B2["join<br/><sub>one panel · 123,015 rows</sub>"]
-    B3["features<br/><sub>season · own history · neighbours</sub>"]
-    B4["HistGradientBoosting<br/><sub>train 2015–19 · test 2021–22</sub>"]
-    B5["validate<br/><sub>5 seeds · bootstrap · leave-one-state-out</sub>"]
+    B1["🧱 &nbsp;<b>skeleton</b><br>295 districts × 417 weeks"]
+    B2["🔗 &nbsp;<b>join</b><br>one panel · 123,015 rows"]
+    B3["🧮 &nbsp;<b>features</b><br>season · own history · neighbours"]
+    B4["🤖 &nbsp;<b>model</b><br>HistGradientBoosting<br>train 2015–19 · test 2021–22"]
+    B5{"🔬 &nbsp;<b>validate</b><br>5 seeds · bootstrap CI<br>leave-one-state-out"}
     B1 --> B2 --> B3 --> B4 --> B5
   end
 
-  subgraph O["Static output — no server"]
+  subgraph OUT ["&nbsp; ③ &nbsp;STATIC OUTPUT &nbsp;"]
     direction TB
-    C1["predictions.json"]
-    C2["validation.json"]
-    C3["districts.geojson"]
+    C1["📈 &nbsp;<b>predictions.json</b><br>risk per district per week"]
+    C2["🧾 &nbsp;<b>validation.json</b><br>transfer · sweep · blind spot"]
+    C3["🧭 &nbsp;<b>districts.geojson</b>"]
   end
 
-  D["Leaflet dashboard<br/><sub>map · watch list · analytics</sub>"]
+  APP(["🗺️ &nbsp;<b>LEAFLET DASHBOARD</b><br>map · ranked watch list · analytics<br>hosted free · nothing to fall over"])
 
   A1 --> B2
   A2 --> B2
@@ -228,18 +264,23 @@ flowchart LR
   B4 --> C1
   B5 --> C2
   B1 --> C3
-  C1 --> D
-  C2 --> D
-  C3 --> D
+  C1 --> APP
+  C2 --> APP
+  C3 --> APP
 
-  classDef src fill:#E8F6F3,stroke:#5FC0AE,color:#0E5A4F
-  classDef pipe fill:#F2F6F5,stroke:#2A8E7E,color:#132A26
-  classDef out fill:#A5DDD2,stroke:#2A8E7E,color:#0E5A4F
-  classDef app fill:#0E5A4F,stroke:#0E5A4F,color:#ffffff
+  classDef src  fill:#13433C,stroke:#5FC0AE,stroke-width:1.4px,color:#E8F6F3
+  classDef pipe fill:#1B2A33,stroke:#5B7A86,stroke-width:1.4px,color:#E7EEF1
+  classDef mdl  fill:#C97B2E,stroke:#E0A45E,stroke-width:1.6px,color:#1A1206
+  classDef val  fill:#2F6FB3,stroke:#6FA5DC,stroke-width:1.6px,color:#F2F7FC
+  classDef out  fill:#0E5A4F,stroke:#5FC0AE,stroke-width:1.4px,color:#DFF4EF
+  classDef app  fill:#5FC0AE,stroke:#A5DDD2,stroke-width:2px,color:#07231F
   class A1,A2,A3,A4 src
-  class B1,B2,B3,B4,B5 pipe
+  class B1,B2,B3 pipe
+  class B4 mdl
+  class B5 val
   class C1,C2,C3 out
-  class D app
+  class APP app
+  linkStyle default stroke:#5FC0AE,stroke-width:1.5px
 ```
 
 **There is no application server.** The data changes weekly; serving it live would add a deployment
@@ -320,10 +361,8 @@ Each one has a named key, and most of those keys already exist inside a governme
 | **Reported, not observed.** Surveillance records what was *reported*; a better-staffed district reports more at the same true burden. We remove district identity so the model cannot simply learn reporting intensity. | Staffing or testing-volume denominators per district, which would let reporting effort be modelled rather than suppressed. |
 | **Human data ends in 2022.** EpiClim's published coverage stops there. | A standing IHIP data-sharing agreement. The pipeline is already scheduled weekly; it refreshes the moment the feed does. |
 
-**Read as a triage ranking, not a prediction.** At the operating threshold 8.6% of flagged
-district-weeks see an outbreak against a 1.6% base rate. The claim is that this is a far better order
-to work down than any other available — not that a named district will have an outbreak. Treating it
-as the latter is the one misuse that would do harm.
+Each row is a door that opens from the outside. The pipeline, the model and the dashboard are
+already built and already scheduled — they refresh the week any one of these feeds does.
 
 ## Repository
 

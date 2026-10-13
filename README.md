@@ -16,7 +16,7 @@ This builds the layer that does — one weekly table, one model, one map.
 [![Licence](https://img.shields.io/badge/licence-MIT-6A7179?style=flat-square)](#licence)
 
 <sub>Hack4Pashudhan · Track 5 (One Health Dashboard) · PGIVER Jaipur</sub><br>
-<sub>Lakkarsu Nanditha · Ch. Vignesh Reddy</sub>
+<sub>Lakkarsu Nanditha</sub>
 
 <img src="docs/dashboard.gif" alt="The dashboard playing through 2021-22: 295 districts shifting shade week by week as the monsoon arrives, with a ranked watch list and three analytics panels" width="100%">
 
@@ -192,6 +192,7 @@ Delhi, Himachal Pradesh and Uttarakhand · 2015–2022, ISO weeks · **123,015 d
 ## Architecture
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontSize":"19px","fontFamily":"IBM Plex Sans, Segoe UI, sans-serif","clusterBkg":"#FAFCFC","clusterBorder":"#C9DCD8"},"flowchart":{"nodeSpacing":46,"rankSpacing":92,"padding":18,"useMaxWidth":false}}}%%
 flowchart LR
   subgraph S["Public sources"]
     direction TB

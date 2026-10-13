@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Health Early Warning</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ink:#132A26; --ink-2:#51625F; --ink-3:#8A9793;
+    --surface:#fff; --surface-2:#F2F6F5; --line:#E1E8E6;
+    --b1:#E8F6F3; --b2:#B4E0D8; --b3:#6FC4B6; --b4:#2F9C8C; --b5:#146B5F;
+    --nodata:#ECEFEE; --alert:#B3401F; --warn:#C97B2E;
+    --shadow:0 1px 2px rgba(19,42,38,.05),0 4px 14px rgba(19,42,38,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;color:var(--ink);
+       background:var(--surface-2);font-size:14px;-webkit-font-smoothing:antialiased;
+       display:flex;flex-direction:column}
+  header{background:var(--ink);color:#fff;padding:13px 20px;display:flex;
+         justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;flex:none}
+  h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.2px}
+  .sub{color:#9CBAB4;font-size:12px;margin-top:2px;max-width:780px;line-height:1.45}
+  .hdr{display:flex;gap:24px;text-align:right}
+  .hdr b{font-size:20px;font-variant-numeric:tabular-nums;display:block;line-height:1.15}
+  .hdr span{font-size:10px;color:#9CBAB4}
+
+  .wrap{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:12px;
+        padding:12px;min-height:0}
+  @media (max-width:1040px){.wrap{grid-template-columns:1fr;overflow:auto}}
+  .left{display:flex;flex-direction:column;gap:12px;min-height:0}
+  .right{display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;padding-right:2px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+        padding:14px;box-shadow:var(--shadow)}
+  .mapcard{flex:1;display:flex;flex-direction:column;min-height:0;padding:12px}
+  #map{flex:1;border-radius:9px;background:#E7EDEC;min-height:340px}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .tabs button{border:0;border-radius:0;padding:7px 13px;font-size:12.5px;color:var(--ink-2);
+               background:var(--surface);cursor:pointer;font-family:inherit;font-weight:500}
+  .tabs button:hover{background:var(--surface-2)}
+  .tabs button[aria-pressed=true]{background:var(--b5);color:#fff}
+  #export{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+          padding:7px 11px;cursor:pointer;color:var(--ink-2);font:inherit;font-size:12px}
+  #export:hover{background:var(--surface-2)}
+  #play{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+        padding:7px 14px;cursor:pointer;color:var(--ink);font:inherit;font-size:12.5px;font-weight:500}
+  #play:hover{background:var(--surface-2)}
+  .slider-wrap{flex:1;min-width:200px}
+  input[type=range]{width:100%;accent-color:var(--b5);margin:0;display:block;cursor:pointer}
+  .ticks{position:relative;height:12px;margin-top:2px}
+  .ticks span{position:absolute;font-size:9.5px;color:var(--ink-3);transform:translateX(-50%)}
+  .monsoon{position:absolute;top:-5px;height:3px;background:var(--b3);border-radius:2px;opacity:.7}
+  .week{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;min-width:92px;text-align:right}
+
+  h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--ink-3);
+     margin:0 0 10px;font-weight:600}
+  .summary{background:var(--b1);border-radius:9px;padding:11px 13px;font-size:13px;
+           line-height:1.5;color:var(--ink)}
+  .summary b{font-weight:600}
+
+  .scale{display:flex;gap:0;margin:9px 0 5px;border-radius:5px;overflow:hidden}
+  .scale div{flex:1;height:9px}
+  .scalelabels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3)}
+  .keyrow{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2);margin-top:8px}
+  .keyrow span{display:flex;align-items:center;gap:5px}
+  .sw{width:20px;height:9px;border-radius:2px;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:7px 2px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  td.n{text-align:right;white-space:nowrap}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:var(--surface-2)}
+  .dname{font-weight:500}
+  .why{font-size:11px;color:var(--ink-3);line-height:1.4;margin-top:2px}
+  .band{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;
+        color:#fff;letter-spacing:.2px}
+  .pct{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;display:block;margin-top:3px}
+  .tag{display:inline-block;background:var(--alert);color:#fff;font-size:9px;padding:1px 5px;
+       border-radius:3px;margin-left:4px;vertical-align:1px;font-weight:600}
+
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .m{background:var(--surface-2);border-radius:9px;padding:10px 12px}
+  .m b{display:block;font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .m span{font-size:10px;color:var(--ink-2);line-height:1.3;display:block;margin-top:2px}
+  .muted{color:var(--ink-3);font-size:11.5px;line-height:1.55}
+  .empty{color:var(--ink-3);font-size:12.5px;line-height:1.6;padding:6px 0}
+  details summary{cursor:pointer;font-size:12px;color:var(--b5);font-weight:500;
+                  list-style:none;padding:2px 0}
+  details summary::-webkit-details-marker{display:none}
+  details summary:before{content:'▸ ';font-size:10px}
+  details[open] summary:before{content:'▾ '}
+  details p{font-size:12px;color:var(--ink-2);line-height:1.6;margin:7px 0 0}
+  .leaflet-tooltip.t{background:var(--ink);color:#fff;border:0;box-shadow:0 3px 14px rgba(0,0,0,.28);
+                     font-size:12px;padding:7px 10px;border-radius:7px;font-family:inherit;line-height:1.5}
+  .leaflet-tooltip.t:before{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>One Health Early Warning — north-west India</h1>
+    <div class="sub">Which districts are most likely to report a disease outbreak in the next four weeks.</div>
+  </div>
+  <div class="hdr" id="hdr"></div>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="card mapcard">
+      <div class="bar" style="margin-bottom:10px">
+        <div class="tabs" id="tabs">
+          <button data-layer="risk" aria-pressed="true">Outbreak risk</button>
+          <button data-layer="bovine" aria-pressed="false">Cattle &amp; buffalo</button>
+          <button data-layer="fmd_vax" aria-pressed="false">FMD vaccination</button>
+        </div>
+        <button id="play">▶ Play through 2021–22</button>
+        <div class="slider-wrap">
+          <input type="range" id="slider" min="0" value="0">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="week" id="weeklabel">—</span>
+      </div>
+      <div id="map"></div>
+      <div style="margin-top:9px">
+        <div style="font-size:11.5px;color:var(--ink-2);font-weight:500" id="scaletitle"></div>
+        <div class="scale" id="scale"></div>
+        <div class="scalelabels" id="scalelabels"></div>
+        <div class="keyrow">
+          <span><span class="sw" style="background:var(--nodata)"></span>no data</span>
+          <span><span class="sw" style="background:var(--alert)"></span>outbreak reported that week</span>
+          <span><span class="sw" style="background:var(--b3)"></span>monsoon weeks (Jun–Sep)</span>
+          <span style="margin-left:auto;color:var(--ink-3)">Hover a district for detail · click to open it</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="card">
+      <h2>This week</h2>
+      <div class="summary" id="summary"></div>
+      <details style="margin-top:10px">
+        <summary>How to read this dashboard</summary>
+        <p><b>Each district is coloured by its risk score</b> — the model's estimate of the chance it reports an outbreak in the next four weeks. Darker means higher.</p>
+        <p><b>The score is relative, not a promise.</b> 30% does not mean an outbreak is 30% certain; it means this district ranks among the riskier ones right now. What matters is the ranking: act on the top of the list first.</p>
+        <p><b>Risk rises in the monsoon</b> (shaded on the timeline). July outbreak rates run about six times January's, so a quiet winter week is normal, not a broken model.</p>
+        <p><b>Red outlines are outbreaks that actually happened</b> — including ones the model rated low. Those misses are left visible on purpose.</p>
+      <p><b>What to do with it:</b> work down "districts to watch" from the top. For each, the line underneath says why it is there — outbreaks nearby, recent cases locally, or just the season. Districts with nearby activity are worth a call to the block health officer; the rest are worth watching. Download the week's full ranking as CSV to circulate.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Districts to watch</h2>
+      <div class="bar" style="margin-bottom:9px">
+        <input id="search" type="search" placeholder="Find a district…" autocomplete="off"
+               style="flex:1;min-width:120px;padding:7px 10px;border:1px solid var(--line);
+                      border-radius:8px;font:inherit;font-size:12.5px;color:var(--ink)">
+        <button id="export" title="Download this week's full ranking as CSV">⬇ CSV</button>
+      </div>
+      <table id="alerts"><tbody></tbody></table>
+      <div class="muted" id="alertnote" style="margin-top:9px"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="dtitle">District detail</h2>
+      <div id="dempty" class="empty">Click any district on the map, or a row above, to see its risk history, livestock and animal-health figures.</div>
+      <div id="dbody" style="display:none">
+        <svg id="spark" viewBox="0 0 300 96" width="100%" height="96" role="img" aria-label="Predicted risk over the test period"></svg>
+        <div class="muted" id="dnote"></div>
+        <div id="danimal" style="margin-top:9px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Animal disease burden</h2>
+      <svg id="serochart" viewBox="0 0 300 118" width="100%" height="118" role="img" aria-label="FMD seroprevalence by year"></svg>
+      <div class="muted" id="seronote">Select a district to see its state's livestock disease trend.</div>
+    </div>
+
+    <div class="card">
+      <h2>How good is it?</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="muted" id="mnote" style="margin-top:9px"></div>
+      <div id="tradeoff"></div>
+    </div>
+
+    <div class="card">
+      <h2>Does it work where it has never been?</h2>
+      <div id="transfer"></div>
+    </div>
+
+    <div class="card">
+      <h2>How much should you inspect?</h2>
+      <div id="sweep"></div>
+    </div>
+
+    <div class="card">
+      <h2>Where it is blind</h2>
+      <div id="blind"></div>
+    </div>
+
+    <div class="card">
+      <h2>Outbreaks it caught in advance</h2>
+      <table id="catches"><tbody></tbody></table>
+      <div class="muted" style="margin-top:8px">Real outbreaks that followed a top-5% risk flag, within the 4-week window.</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const RAMP = ['#E8F6F3','#B4E0D8','#6FC4B6','#2F9C8C','#146B5F'];
+const BANDS = ['Very low','Low','Moderate','High','Very high'];
+const LAYERS = {
+  risk:    {title:'Predicted outbreak risk over the next 4 weeks',
+            fmt: v => (v*100).toFixed(0)+'%', banded:true},
+  bovine:  {title:'Cattle and buffalo population',
+            fmt: v => v >= 1e6 ? (v/1e6).toFixed(1)+'m head' : (v/1000).toFixed(0)+'k head'},
+  fmd_vax: {title:'FMD vaccine doses delivered per bovine (rounds 1–6)',
+            fmt: v => v.toFixed(2)+' doses'},
+};
+let P, layer, map, cuts = {}, wi = 0, timer = null, selected = null, mode = 'risk';
+const key = f => f.properties.state + '|' + f.properties.district;
+const monthOf = w => +w.slice(5, 7);
+const isMonsoon = w => monthOf(w) >= 6 && monthOf(w) <= 9;
+
+// Quantile breaks: every measure here is right-skewed, so equal intervals would
+// wash nearly all districts into the palest step.
+function quantiles(vals, n = 5) {
+  const s = vals.filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+  if (!s.length) return [0, 0, 0, 0];
+  return Array.from({length: n - 1}, (_, i) => s[Math.floor(s.length * (i + 1) / n)]);
+}
+const valueFor = d => !d ? null : (mode === 'risk' ? d.risk[wi] : d[mode]);
+// Always band against the RISK cuts: the alert list and summary show risk
+// regardless of which layer the map is displaying.
+const bandOf = (v, m = 'risk') => cuts[m].filter(c => v >= c).length;
+const colorFor = v => (v == null || isNaN(v)) ? '#ECEFEE' : RAMP[bandOf(v, mode)];
+
+// One style pass per redraw. Doing style() then a second eachLayer() to add the
+// outbreak outline doubled the work on 295 polygons and stuttered during playback.
+function style(f) {
+  const d = P.districts[key(f)];
+  const out = d && d.outbreak[wi];
+  return {fillColor: colorFor(valueFor(d)), fillOpacity: .92,
+          weight: out ? 2.2 : .5, color: out ? '#B3401F' : '#fff'};
+}
+
+function why(d) {
+  const bits = [];
+  if (d.nb && d.nb[wi] > 0) bits.push(`${d.nb[wi]} outbreak${d.nb[wi] > 1 ? 's' : ''} nearby`);
+  if (d.own && d.own[wi] > 0) bits.push(`${d.own[wi]} here in the last 8 weeks`);
+  if (isMonsoon(P.weeks[wi])) bits.push('monsoon season');
+  return bits.length ? bits.join(' · ') : 'no recent activity nearby';
+}
+
+function drawScale() {
+  const L = LAYERS[mode];
+  document.getElementById('scaletitle').textContent = L.title;
+  document.getElementById('scale').innerHTML =
+    RAMP.map(c => `<div style="background:${c}"></div>`).join('');
+  const c = cuts[mode];
+  document.getElementById('scalelabels').innerHTML = L.banded
+    ? BANDS.map((b, i) => `<span>${b}</span>`).join('')
+    : [`low`, L.fmt(c[1]), L.fmt(c[3]), 'high'].map(x => `<span>${x}</span>`).join('');
+}
+
+function draw() {
+  const w = P.weeks[wi];
+  document.getElementById('weeklabel').textContent = w;
+  document.getElementById('slider').value = wi;
+  layer.setStyle(style);
+  drawScale();
+
+  const all = Object.entries(P.districts).map(([k, d]) => ({k, d, r: d.risk[wi]}))
+    .filter(x => x.r != null).sort((a, b) => b.r - a.r);
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  const matched = q ? all.filter(x => (x.d.district + ' ' + x.d.state).toLowerCase().includes(q)) : all;
+  const rows = matched.slice(0, 8);
+  const outbreaks = Object.values(P.districts).filter(d => d.outbreak[wi]).length;
+  const top = rows[0];
+
+  document.getElementById('summary').innerHTML =
+    `Week of <b>${w}</b> — ${isMonsoon(w) ? 'monsoon season, when risk runs highest'
+      : (monthOf(w) >= 11 || monthOf(w) <= 3 ? 'dry season, when risk is normally lowest'
+         : 'shoulder season')}. ` +
+    `Highest risk is <b>${top.d.district}</b> at <b>${(top.r*100).toFixed(0)}%</b> ` +
+    `(${BANDS[bandOf(top.r)].toLowerCase()}). ` +
+    (outbreaks ? `<b>${outbreaks}</b> district${outbreaks > 1 ? 's' : ''} reported an outbreak this week.`
+               : 'No outbreaks reported this week.');
+
+  const t = document.querySelector('#alerts tbody');
+  t.innerHTML = rows.map(x => {
+    const b = bandOf(x.r);
+    return `<tr data-k="${x.k}">
+      <td><span class="dname">${x.d.district}</span>${x.d.outbreak[wi] ? '<span class="tag">OUTBREAK</span>' : ''}
+          <div class="why">${x.d.state} — ${why(x.d)}</div></td>
+      <td class="n"><span class="band" style="background:${RAMP[b]};${b < 2 ? 'color:#132A26' : ''}">${BANDS[b]}</span>
+          <span class="pct">${(x.r*100).toFixed(0)}%</span></td></tr>`;
+  }).join('');
+  t.querySelectorAll('tr').forEach(tr => tr.onclick = () => select(tr.dataset.k));
+
+  if (q) {
+    const ranks = matched.slice(0, 8).map(x => all.findIndex(a => a.k === x.k) + 1);
+    document.getElementById('alertnote').textContent = matched.length
+      ? `Showing ${rows.length} of ${matched.length} matching "${q}" — ranked ` +
+        `${ranks[0]}${ranks.length > 1 ? '–' + ranks[ranks.length-1] : ''} of ${all.length} districts this week.`
+      : `No district matches "${q}".`;
+    return;
+  }
+  const over = all.filter(x => x.r >= P.meta.alert_threshold).length;
+  document.getElementById('alertnote').textContent = over
+    ? `${over} district${over > 1 ? 's' : ''} above the alert threshold (${(P.meta.alert_threshold*100).toFixed(0)}%) — the level at which this tool is worth acting on.`
+    : `No district reaches the alert threshold (${(P.meta.alert_threshold*100).toFixed(0)}%) this week. The ranking above is still the order to check in.`;
+
+  if (selected) detail(selected);
+}
+
+function select(k) { selected = k; detail(k); }
+
+function detail(k) {
+  const d = P.districts[k], n = P.weeks.length;
+  document.getElementById('dempty').style.display = 'none';
+  document.getElementById('dbody').style.display = '';
+  document.getElementById('dtitle').textContent = `${d.district}, ${d.state}`;
+
+  const xs = i => 5 + i * (290 / (n - 1));
+  const max = Math.max(...d.risk.filter(v => v != null), .01);
+  const ys = v => 80 - (v / max) * 68;
+  let bands = '';
+  for (let i = 0; i < n; i++)
+    if (isMonsoon(P.weeks[i]))
+      bands += `<rect x="${xs(i)}" y="4" width="${290/(n-1)+.7}" height="80" fill="#EAF6F4"/>`;
+  const pts = d.risk.map((v, i) => v == null ? null : `${xs(i)},${ys(v)}`).filter(Boolean).join(' ');
+  const marks = d.risk.map((v, i) => d.outbreak[i]
+    ? `<line x1="${xs(i)}" y1="4" x2="${xs(i)}" y2="84" stroke="#B3401F" stroke-width="1.4" opacity=".6"/>` : '').join('');
+  document.getElementById('spark').innerHTML = bands + marks + `
+    <polyline points="${pts}" fill="none" stroke="#146B5F" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="${xs(wi)}" y1="4" x2="${xs(wi)}" y2="84" stroke="#132A26" stroke-width="1"/>
+    <text x="5" y="93" font-size="9" fill="#8A9793">${P.weeks[0]}</text>
+    <text x="295" y="93" font-size="9" fill="#8A9793" text-anchor="end">${P.weeks[n-1]}</text>`;
+
+  const hits = d.outbreak.reduce((a, b) => a + b, 0);
+  document.getElementById('dnote').innerHTML =
+    `Risk this week <b>${(d.risk[wi]*100).toFixed(0)}%</b> — ${BANDS[bandOf(d.risk[wi])].toLowerCase()}, ${why(d)}. ` +
+    `${hits ? hits + ' outbreak week' + (hits === 1 ? '' : 's') + ' actually reported (red lines).'
+            : 'No outbreak reported here across 2021–22.'} Shaded bands are monsoon months.`;
+
+  const rows = [['Cattle &amp; buffalo', d.bovine == null ? null : LAYERS.bovine.fmt(d.bovine)],
+                ['All livestock', d.livestock == null ? null : LAYERS.bovine.fmt(d.livestock)],
+                ['FMD doses per bovine', d.fmd_vax == null ? null : d.fmd_vax.toFixed(2)]];
+  document.getElementById('danimal').innerHTML = '<table>' + rows.map(([a, b]) =>
+    `<tr><td class="muted" style="font-size:12px">${a}</td>
+         <td class="n" style="font-weight:500">${b ?? '—'}</td></tr>`).join('') + '</table>';
+  sero(d.state);
+}
+
+function sero(state) {
+  const s = (P.sero || {})[state], el = document.getElementById('serochart');
+  if (!s || !Object.keys(s).length) {
+    el.innerHTML = '';
+    document.getElementById('seronote').textContent =
+      `No FMD serosurveillance reported for ${state} in this period.`;
+    return;
+  }
+  const yrs = Object.keys(s).map(Number).sort((a, b) => a - b);
+  const max = Math.max(...yrs.map(y => s[y]), 10);
+  const slot = 288 / yrs.length, bw = Math.min(34, slot - 10);
+  el.innerHTML = yrs.map((y, i) => {
+    const x = 6 + i * slot + (slot - bw) / 2, h = (s[y] / max) * 72;
+    return `<rect x="${x}" y="${90 - h}" width="${bw}" height="${h}" fill="#2F9C8C" rx="2"/>
+            <text x="${x + bw/2}" y="103" font-size="9" fill="#8A9793" text-anchor="middle">${y}</text>
+            <text x="${x + bw/2}" y="${86 - h}" font-size="9.5" fill="#51625F" text-anchor="middle" font-weight="600">${s[y].toFixed(0)}%</text>`;
+  }).join('') + `<line x1="4" y1="90" x2="296" y2="90" stroke="#E1E8E6"/>`;
+  const a = s[yrs[0]], b = s[yrs[yrs.length-1]];
+  document.getElementById('seronote').innerHTML =
+    `Share of cattle and buffalo testing positive for foot-and-mouth disease in <b>${state}</b>: ` +
+    `${a.toFixed(0)}% in ${yrs[0]} → ${b.toFixed(0)}% in ${yrs[yrs.length-1]}` +
+    `${b < a ? ', falling as national vaccination scaled up' : ''}. Reported years only. Source: ICAR via NADCP.`;
+}
+
+function renderValidation(V) {
+  const c = V.confusion;
+  // Both halves of the truth: the catch rate and the cost of getting it.
+  document.getElementById('tradeoff').innerHTML = `
+    <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--line)">
+      <div style="font-size:12.5px;line-height:1.6;color:var(--ink)">
+        Inspecting the riskiest <b>5%</b> of districts each week catches
+        <b>${(c.recall*100).toFixed(0)}%</b> of all outbreaks. Picking at random
+        at the same effort would catch 5%.</div>
+      <div class="muted" style="margin-top:7px">
+        Honestly: ${c.true_positives} real outbreaks among ${c.flagged} flagged district-weeks,
+        so about <b>${c.false_alarms_per_catch.toFixed(0)} false alarms per catch</b>, and
+        ${c.missed} outbreaks were missed entirely. That is the cost of acting early on a rare event —
+        at the background rate, random inspection would cost around 60 false alarms per catch.</div>
+    </div>`;
+
+  const st = Object.entries(V.leave_one_state_out).filter(([, v]) => v.lift);
+  const max = Math.max(...st.map(([, v]) => v.lift), 1);
+  document.getElementById('transfer').innerHTML = `
+    <div style="font-size:12.5px;line-height:1.6;margin-bottom:10px">
+      Each bar: the model trained on the other eight states, then asked to predict this one —
+      a state it has never seen. Mean lift <b>${V.mean_unseen_lift.toFixed(1)}×</b>.</div>
+    ${st.sort((a, b) => b[1].lift - a[1].lift).map(([k, v]) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="width:104px;font-size:11.5px;color:var(--ink-2)">${k}</span>
+        <div style="flex:1;background:var(--surface-2);border-radius:3px;height:14px">
+          <div style="width:${v.lift/max*100}%;background:var(--b4);height:100%;border-radius:3px"></div>
+        </div>
+        <span style="font-size:11.5px;font-variant-numeric:tabular-nums;width:34px;text-align:right">${v.lift.toFixed(1)}×</span>
+      </div>`).join('')}
+    <div class="muted" style="margin-top:8px">States with too few test outbreaks to measure are left out rather than quoted as noise.</div>`;
+
+  // 5% was a choice. This is the evidence for it: lift falls as you inspect more,
+  // so the row to pick depends on how many wasted visits the officer can absorb.
+  const sw = V.threshold_sweep || [];
+  document.getElementById('sweep').innerHTML = `
+    <div style="font-size:12.5px;line-height:1.6;margin-bottom:9px">
+      Inspect more districts and you catch more outbreaks, but each catch costs more
+      wasted visits. There is no right answer — this is the trade-off, measured.</div>
+    <table style="width:100%;font-size:11.5px;font-variant-numeric:tabular-nums">
+      <tr style="color:var(--ink-2)"><th style="text-align:left">Inspect</th>
+        <th style="text-align:right">Outbreaks caught</th>
+        <th style="text-align:right">Better than random</th>
+        <th style="text-align:right">Wasted visits per catch</th></tr>
+      ${sw.map(r => {
+        const here = Math.abs(r.inspect_frac - V.top_frac) < 1e-9;
+        return `<tr style="${here ? 'background:var(--surface-2);font-weight:600' : ''}">
+          <td>${(r.inspect_frac*100).toFixed(0)}%${here ? ' ·' : ''}</td>
+          <td style="text-align:right">${(r.recall*100).toFixed(0)}%</td>
+          <td style="text-align:right">${r.lift.toFixed(1)}×</td>
+          <td style="text-align:right">${r.false_per_catch.toFixed(0)}</td></tr>`;
+      }).join('')}
+    </table>
+    <div class="muted" style="margin-top:8px">The marked row is the threshold this
+      dashboard uses. Inspecting twice as many districts roughly doubles the catch rate
+      and the waste along with it.</div>`;
+
+  // The most useful thing we know about our own model: when not to trust it.
+  const m = V.missed, cold = m.cold_start, warm = m.with_recent_signal;
+  const bar = (label, n, caught, col) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="width:150px;font-size:11.5px;color:var(--ink-2)">${label}</span>
+      <div style="flex:1;background:var(--surface-2);border-radius:3px;height:14px">
+        <div style="width:${caught*100}%;background:${col};height:100%;border-radius:3px"></div></div>
+      <span style="font-size:11.5px;font-variant-numeric:tabular-nums;width:60px;text-align:right">${(caught*100).toFixed(0)}% of ${n}</span>
+    </div>`;
+  document.getElementById('blind').innerHTML = `
+    <div style="font-size:12.5px;line-height:1.6;margin-bottom:10px">
+      The forecast reads recent activity nearby. So it sees outbreaks that
+      <b>continue or spread</b>, and largely misses ones that <b>appear out of nowhere</b>.</div>
+    ${bar('Something active nearby', warm.n, warm.caught, RAMP[4])}
+    ${bar('Quiet beforehand', cold.n, cold.caught, '#F0A68C')}
+    ${bar('Monsoon weeks', m.monsoon.n, m.monsoon.caught, RAMP[3])}
+    ${bar('Dry-season weeks', m.dry.n, m.dry.caught, RAMP[2])}
+    <div class="muted" style="margin-top:9px">Use this to <b>allocate follow-up where
+      something is already stirring</b>, not to detect a disease arriving somewhere new.
+      For that, nothing replaces a report from the ground.</div>`;
+
+  document.querySelector('#catches tbody').innerHTML = V.catches.slice(0, 5).map(x => `
+    <tr><td><span class="dname">${x.district}</span>
+      <div class="why">${x.state} · week of ${x.week} —
+        ${x.own_recent ? x.own_recent + ' recent case' + (x.own_recent > 1 ? 's' : '') + ' here' : ''}${x.own_recent && x.neighbours_active ? ', ' : ''}${x.neighbours_active ? x.neighbours_active + ' nearby' : ''}</div></td>
+      <td class="n"><span class="band" style="background:${RAMP[4]}">flagged</span>
+        <span class="pct">${(x.risk*100).toFixed(0)}%</span></td></tr>`).join('');
+}
+
+function buildTicks() {
+  const n = P.weeks.length;
+  let html = '', run = null;
+  for (let i = 0; i < n; i++) {
+    const wet = isMonsoon(P.weeks[i]);
+    if (wet && run === null) run = i;
+    if ((!wet || i === n - 1) && run !== null) {
+      html += `<div class="monsoon" style="left:${run/(n-1)*100}%;width:${(i-run)/(n-1)*100}%"></div>`;
+      run = null;
+    }
+    if (i === 0 || P.weeks[i].slice(0,4) !== P.weeks[i-1].slice(0,4))
+      html += `<span style="left:${Math.min(98, i/(n-1)*100)}%">${P.weeks[i].slice(0,4)}</span>`;
+  }
+  document.getElementById('ticks').innerHTML = html;
+}
+
+Promise.all([
+  fetch('../data/interim/districts.geojson').then(r => r.json()),
+  fetch('../data/interim/predictions.json').then(r => r.json()),
+  // Optional: present once validation.py has run.
+  fetch('../data/interim/validation.json').then(r => r.ok ? r.json() : null).catch(() => null),
+]).then(([g, p, V]) => {
+  P = p;
+  if (V) renderValidation(V);
+  cuts.risk = quantiles(Object.values(P.districts).flatMap(d => d.risk));
+  cuts.bovine = quantiles(Object.values(P.districts).map(d => d.bovine));
+  cuts.fmd_vax = quantiles(Object.values(P.districts).map(d => d.fmd_vax));
+
+  // Canvas rendering: 295 polygons restyled every frame during playback is far
+  // too much for individual SVG paths.
+  map = L.map('map', {zoomSnap: .25, preferCanvas: true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution: '&copy; OpenStreetMap contributors', maxZoom: 12, opacity: .45}).addTo(map);
+
+  layer = L.geoJSON(g, {
+    style, renderer: L.canvas({padding: .3}),
+    onEachFeature: (f, l) => {
+      l.bindTooltip(() => {
+        const d = P.districts[key(f)], v = valueFor(d);
+        const head = `<b>${f.properties.district}</b>, ${f.properties.state}`;
+        if (v == null || isNaN(v)) return head + '<br>no data for this layer';
+        if (mode !== 'risk') return head + `<br>${LAYERS[mode].fmt(v)}`;
+        return head + `<br><b>${BANDS[bandOf(v)]}</b> risk · ${(v*100).toFixed(0)}%` +
+          `<br><span style="color:#9CBAB4">${why(d)}</span>` +
+          (d.outbreak[wi] ? '<br><span style="color:#F0A68C">outbreak reported this week</span>' : '');
+      }, {className: 't', sticky: true});
+      l.on('click', () => select(key(f)));
+    },
+  }).addTo(map);
+
+  // Leaflet measures the container at creation, before the grid settles.
+  const bounds = layer.getBounds();
+  const fit = () => { map.invalidateSize(); map.fitBounds(bounds, {padding: [12, 12]}); };
+  fit();
+  // The map is a flex child, so its height can still change after first paint;
+  // refit whenever the box actually settles rather than guessing a delay.
+  let settled = 0;
+  new ResizeObserver(() => { if (settled++ < 4) fit(); else map.invalidateSize(); })
+    .observe(document.getElementById('map'));
+  // Keep the study area in view: panning off to Africa helps nobody.
+  map.setMaxBounds(bounds.pad(0.6));
+  map.setMinZoom(map.getBoundsZoom(bounds) - 0.5);
+
+  const s = document.getElementById('slider');
+  s.max = P.weeks.length - 1;
+  s.oninput = () => { wi = +s.value; draw(); };
+  buildTicks();
+
+  document.getElementById('tabs').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.layer;
+    [...e.currentTarget.children].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    draw();
+  };
+  document.getElementById('search').oninput = () => draw();
+  document.getElementById('export').onclick = () => {
+    const rows = Object.entries(P.districts).map(([, d]) => d)
+      .filter(d => d.risk[wi] != null)
+      .sort((a, b) => b.risk[wi] - a.risk[wi]);
+    const csv = ['rank,state,district,risk_pct,band,outbreaks_nearby,outbreaks_here_8w,outbreak_reported']
+      .concat(rows.map((d, i) => [i + 1, `"${d.state}"`, `"${d.district}"`,
+        (d.risk[wi] * 100).toFixed(1), `"${BANDS[bandOf(d.risk[wi])]}"`,
+        d.nb ? d.nb[wi] : 0, d.own ? d.own[wi] : 0, d.outbreak[wi]].join(','))).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = `outbreak-risk-${P.weeks[wi]}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  document.getElementById('play').onclick = e => {
+    if (timer) { clearInterval(timer); timer = null; e.target.textContent = '▶ Play through 2021–22'; return; }
+    e.target.textContent = '❚❚ Pause';
+    timer = setInterval(() => { wi = (wi + 1) % P.weeks.length; draw(); }, 340);
+  };
+
+  const mt = P.meta, lift = mt.hit_rate / mt.base_rate;
+  document.getElementById('hdr').innerHTML =
+    `<div><b>${lift.toFixed(1)}×</b><span>better than chance</span></div>
+     <div><b>295</b><span>districts, 9 states</span></div>
+     <div><b>4</b><span>weeks of warning</span></div>`;
+  document.getElementById('metrics').innerHTML = `
+    <div class="m"><b>${(mt.hit_rate*100).toFixed(1)}%</b><span>of districts we flag do see an outbreak</span></div>
+    <div class="m"><b>${(mt.base_rate*100).toFixed(1)}%</b><span>would, if you picked at random</span></div>
+    <div class="m"><b>${lift.toFixed(1)}×</b><span>better than chance (95% CI 4.6–6.4)</span></div>
+    <div class="m"><b>${mt.pr_auc.toFixed(3)}</b><span>PR-AUC, the metric for rare events</span></div>`;
+  document.getElementById('mnote').textContent =
+    `In plain terms: an officer who can inspect five districts a week finds about five times more ` +
+    `outbreaks using this list than working at random. Trained ${mt.train_years[0]}–${mt.train_years[1]}, ` +
+    `tested on ${mt.test_years.join(' and ')} — the model never saw the test period. 2020 excluded because ` +
+    `COVID disrupted reporting. Uses no district identity, so it works on districts it has never seen.`;
+
+  draw();
+}).catch(e => {
+  document.body.insertAdjacentHTML('afterbegin',
+    `<div class="card" style="margin:12px;color:#B3401F">Could not load data: ${e}.
+     Run <code>python3 model.py</code>, then serve from the project root with
+     <code>python3 -m http.server</code> — not file://.</div>`);
+});
+</script>
+</body>
+</html>

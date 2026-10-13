@@ -1,0 +1,48 @@
+# Re-runs the pipeline and republishes the dashboard data.
+#
+# build_map.py is NOT run here: it needs the full India district GeoJSON (90 MB,
+# not in the repo), and its outputs — districts.geojson and neighbours.json —
+# only change when the scope changes. Run it by hand if you add a state.
+name: refresh
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # Monday 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Fetch sources
+        run: |
+          mkdir -p data/raw
+          curl -sSL --retry 3 -o data/raw/epiclim.csv \
+            "https://zenodo.org/records/14580510/files/Final_data.csv?download=1"
+          cd src
+          python skeleton.py
+          python fetch_climate.py
+          python fetch_animal.py
+
+      - name: Rebuild panel, model and validation
+        run: |
+          cd src
+          python join.py
+          python model.py
+          python validation.py
+
+      - name: Commit refreshed dashboard data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f data/interim/predictions.json data/interim/validation.json
+          git diff --staged --quiet || git commit -m "refresh: pipeline rerun $(date -u +%Y-%m-%d)"
+          git push

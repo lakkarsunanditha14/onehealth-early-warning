@@ -1,0 +1,239 @@
+{
+  "threshold_sweep": [
+    {
+      "inspect_frac": 0.01,
+      "flagged": 304,
+      "caught": 45,
+      "recall": 0.09513742071881606,
+      "precision": 0.14802631578947367,
+      "lift": 9.509047791254034,
+      "false_per_catch": 5.7555555555555555
+    },
+    {
+      "inspect_frac": 0.02,
+      "flagged": 608,
+      "caught": 78,
+      "recall": 0.1649048625792812,
+      "precision": 0.12828947368421054,
+      "lift": 8.241174752420163,
+      "false_per_catch": 6.794871794871795
+    },
+    {
+      "inspect_frac": 0.05,
+      "flagged": 1520,
+      "caught": 131,
+      "recall": 0.2769556025369979,
+      "precision": 0.0861842105263158,
+      "lift": 5.5363789362412374,
+      "false_per_catch": 10.603053435114504
+    },
+    {
+      "inspect_frac": 0.1,
+      "flagged": 3042,
+      "caught": 176,
+      "recall": 0.37209302325581395,
+      "precision": 0.057856673241288625,
+      "lift": 3.7166490833753802,
+      "false_per_catch": 16.28409090909091
+    },
+    {
+      "inspect_frac": 0.15,
+      "flagged": 4577,
+      "caught": 216,
+      "recall": 0.45665961945031713,
+      "precision": 0.04719248415993008,
+      "lift": 3.031593300633141,
+      "false_per_catch": 20.189814814814813
+    },
+    {
+      "inspect_frac": 0.2,
+      "flagged": 6084,
+      "caught": 245,
+      "recall": 0.5179704016913319,
+      "precision": 0.04026955950032873,
+      "lift": 2.5868722313266144,
+      "false_per_catch": 23.83265306122449
+    },
+    {
+      "inspect_frac": 0.3,
+      "flagged": 9120,
+      "caught": 311,
+      "recall": 0.6575052854122622,
+      "precision": 0.03410087719298246,
+      "lift": 2.1906028615407442,
+      "false_per_catch": 28.324758842443728
+    }
+  ],
+  "missed": {
+    "n_outbreaks": 473,
+    "caught_overall": 0.2769556025369979,
+    "cold_start": {
+      "n": 255,
+      "caught": 0.0196078431372549
+    },
+    "with_recent_signal": {
+      "n": 218,
+      "caught": 0.5779816513761468
+    },
+    "monsoon": {
+      "n": 241,
+      "caught": 0.34439834024896265
+    },
+    "dry": {
+      "n": 232,
+      "caught": 0.20689655172413793
+    },
+    "by_state": {
+      "Gujarat": {
+        "n": 107,
+        "caught": 0.37383177570093457
+      },
+      "Haryana": {
+        "n": 40,
+        "caught": 0.325
+      },
+      "Madhya Pradesh": {
+        "n": 55,
+        "caught": 0.23636363636363636
+      },
+      "Punjab": {
+        "n": 68,
+        "caught": 0.29411764705882354
+      },
+      "Uttar Pradesh": {
+        "n": 159,
+        "caught": 0.22012578616352202
+      },
+      "Uttarakhand": {
+        "n": 24,
+        "caught": 0.25
+      }
+    }
+  },
+  "leave_one_state_out": {
+    "Delhi": {
+      "skipped": "0 positive test weeks"
+    },
+    "Gujarat": {
+      "n_test_pos": 107,
+      "base_rate": 0.0314798470138276,
+      "hit_rate": 0.12941176470588237,
+      "lift": 4.110940076965366
+    },
+    "Haryana": {
+      "n_test_pos": 40,
+      "base_rate": 0.0176522506619594,
+      "hit_rate": 0.07017543859649122,
+      "lift": 3.975438596491228
+    },
+    "Himachal Pradesh": {
+      "skipped": "12 positive test weeks"
+    },
+    "Madhya Pradesh": {
+      "n_test_pos": 55,
+      "base_rate": 0.009708737864077669,
+      "hit_rate": 0.035211267605633804,
+      "lift": 3.626760563380282
+    },
+    "Punjab": {
+      "n_test_pos": 68,
+      "base_rate": 0.028704094554664415,
+      "hit_rate": 0.15966386554621848,
+      "lift": 5.562407315867524
+    },
+    "Rajasthan": {
+      "skipped": "8 positive test weeks"
+    },
+    "Uttar Pradesh": {
+      "n_test_pos": 159,
+      "base_rate": 0.02058252427184466,
+      "hit_rate": 0.09302325581395349,
+      "lift": 4.51952610794208
+    },
+    "Uttarakhand": {
+      "n_test_pos": 24,
+      "base_rate": 0.017923823749066467,
+      "hit_rate": 0.11940298507462686,
+      "lift": 6.661691542288557
+    }
+  },
+  "mean_unseen_lift": 4.7427940338225065,
+  "confusion": {
+    "flagged": 1520,
+    "true_positives": 131,
+    "false_alarms": 1389,
+    "missed": 342,
+    "correctly_quiet": 28523,
+    "precision": 0.0861842105263158,
+    "recall": 0.2769556025369979,
+    "false_alarms_per_catch": 10.603053435114504
+  },
+  "catches": [
+    {
+      "state": "Haryana",
+      "district": "Yamunanagar",
+      "week": "2021-07-26",
+      "risk": 0.925,
+      "neighbours_active": 0,
+      "own_recent": 2
+    },
+    {
+      "state": "Gujarat",
+      "district": "Navsari",
+      "week": "2022-04-11",
+      "risk": 0.92,
+      "neighbours_active": 0,
+      "own_recent": 2
+    },
+    {
+      "state": "Madhya Pradesh",
+      "district": "Morena",
+      "week": "2022-05-30",
+      "risk": 0.919,
+      "neighbours_active": 1,
+      "own_recent": 2
+    },
+    {
+      "state": "Gujarat",
+      "district": "Navsari",
+      "week": "2021-06-14",
+      "risk": 0.905,
+      "neighbours_active": 1,
+      "own_recent": 1
+    },
+    {
+      "state": "Gujarat",
+      "district": "Navsari",
+      "week": "2021-07-12",
+      "risk": 0.903,
+      "neighbours_active": 0,
+      "own_recent": 2
+    },
+    {
+      "state": "Uttar Pradesh",
+      "district": "Lucknow",
+      "week": "2021-08-30",
+      "risk": 0.896,
+      "neighbours_active": 0,
+      "own_recent": 2
+    },
+    {
+      "state": "Uttarakhand",
+      "district": "Haridwar",
+      "week": "2021-09-13",
+      "risk": 0.893,
+      "neighbours_active": 3,
+      "own_recent": 2
+    },
+    {
+      "state": "Madhya Pradesh",
+      "district": "Khargone",
+      "week": "2021-06-21",
+      "risk": 0.888,
+      "neighbours_active": 0,
+      "own_recent": 1
+    }
+  ],
+  "horizon_weeks": 4,
+  "top_frac": 0.05
+}

@@ -1,0 +1,14 @@
+data/raw/
+__pycache__/
+*.pyc
+.DS_Store
+_to_delete/
+
+# Intermediates rebuild from the pipeline, so they stay out of the repo — except
+# the four files the dashboard reads directly, since GitHub Pages serves it from
+# here and a dashboard with no data is a broken demo link.
+data/interim/*
+!data/interim/districts.geojson
+!data/interim/neighbours.json
+!data/interim/predictions.json
+!data/interim/validation.json

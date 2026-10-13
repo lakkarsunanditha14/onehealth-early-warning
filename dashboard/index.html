@@ -19,13 +19,17 @@
   body{font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;color:var(--ink);
        background:var(--surface-2);font-size:14px;-webkit-font-smoothing:antialiased;
        display:flex;flex-direction:column}
-  header{background:var(--ink);color:#fff;padding:13px 20px;display:flex;
+  header{background:linear-gradient(104deg,#0B211D 0%,#163A33 48%,#1E5047 100%);
+         color:#fff;padding:15px 22px;display:flex;
          justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;flex:none}
-  h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.2px}
-  .sub{color:#9CBAB4;font-size:12px;margin-top:2px;max-width:780px;line-height:1.45}
-  .hdr{display:flex;gap:24px;text-align:right}
-  .hdr b{font-size:20px;font-variant-numeric:tabular-nums;display:block;line-height:1.15}
-  .hdr span{font-size:10px;color:#9CBAB4}
+  h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.2px}
+  .sub{color:#9CBAB4;font-size:12px;margin-top:3px;max-width:780px;line-height:1.45}
+  .hdr{display:flex;gap:28px;text-align:right}
+  .hdr b{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;display:block;
+         line-height:1.1;letter-spacing:-.6px;
+         background:linear-gradient(180deg,#fff 30%,#8FD9C8 100%);
+         -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hdr span{font-size:10px;color:#9CBAB4;letter-spacing:.3px}
 
   .wrap{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:12px;
         padding:12px;min-height:0}
@@ -132,7 +136,7 @@
         <div class="scalelabels" id="scalelabels"></div>
         <div class="keyrow">
           <span><span class="sw" style="background:var(--nodata)"></span>no data</span>
-          <span><span class="sw" style="background:var(--alert)"></span>outbreak reported that week</span>
+          <span><span class="sw" style="background:#132A26"></span>outbreak reported that week</span>
           <span><span class="sw" style="background:var(--b3)"></span>monsoon weeks (Jun–Sep)</span>
           <span style="margin-left:auto;color:var(--ink-3)">Hover a district for detail · click to open it</span>
         </div>
@@ -214,7 +218,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const RAMP = ['#E8F6F3','#B4E0D8','#6FC4B6','#2F9C8C','#146B5F'];
+// Teal -> green -> amber -> ember. Multi-hue so the top of the scale carries real
+// visual weight, but still monotonic in lightness, so it reads as one ordered scale
+// rather than two competing colours.
+const RAMP = ['#E3F5EF','#9BE3C4','#F5CE5B','#F0914A','#DC5340'];
 const BANDS = ['Very low','Low','Moderate','High','Very high'];
 const LAYERS = {
   risk:    {title:'Predicted outbreak risk over the next 4 weeks',
@@ -247,8 +254,10 @@ const colorFor = v => (v == null || isNaN(v)) ? '#ECEFEE' : RAMP[bandOf(v, mode)
 function style(f) {
   const d = P.districts[key(f)];
   const out = d && d.outbreak[wi];
-  return {fillColor: colorFor(valueFor(d)), fillOpacity: .92,
-          weight: out ? 2.2 : .5, color: out ? '#B3401F' : '#fff'};
+  // Reported outbreaks get a dark halo rather than a red one: red now lives at the
+  // top of the risk ramp, and two reds on one map read as the same thing.
+  return {fillColor: colorFor(valueFor(d)), fillOpacity: .93,
+          weight: out ? 2.6 : .5, color: out ? '#132A26' : '#fff'};
 }
 
 function why(d) {
@@ -558,11 +567,24 @@ Promise.all([
     a.download = `outbreak-risk-${P.weeks[wi]}.csv`;
     a.click(); URL.revokeObjectURL(a.href);
   };
-  document.getElementById('play').onclick = e => {
-    if (timer) { clearInterval(timer); timer = null; e.target.textContent = '▶ Play through 2021–22'; return; }
-    e.target.textContent = '❚❚ Pause';
-    timer = setInterval(() => { wi = (wi + 1) % P.weeks.length; draw(); }, 340);
+  const playBtn = document.getElementById('play');
+  const stopPlay = () => { clearInterval(timer); timer = null; playBtn.textContent = '▶ Play through 2021–22'; };
+  // `once` stops at the end of the series instead of looping. The opening pass uses it:
+  // a map that moves by itself explains the seasonality faster than the caption does,
+  // but one that never stops is impossible to read.
+  const startPlay = (once = false) => {
+    playBtn.textContent = '❚❚ Pause';
+    timer = setInterval(() => {
+      if (once && wi >= P.weeks.length - 1) return stopPlay();
+      wi = (wi + 1) % P.weeks.length;
+      draw();
+    }, 340);
   };
+  playBtn.onclick = () => timer ? stopPlay() : startPlay();
+  // Any interaction means they want to look at something — get out of the way.
+  ['pointerdown', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, () => { if (timer) stopPlay(); }, {once: true}));
+  setTimeout(() => { if (!timer && wi === 0) startPlay(true); }, 900);
 
   const mt = P.meta, lift = mt.hit_rate / mt.base_rate;
   document.getElementById('hdr').innerHTML =

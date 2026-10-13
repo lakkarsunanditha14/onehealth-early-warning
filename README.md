@@ -15,16 +15,23 @@ This builds the layer that does — one weekly table, one model, one map.
 [![Python](https://img.shields.io/badge/python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](requirements.txt)
 [![Licence](https://img.shields.io/badge/licence-MIT-6A7179?style=flat-square)](#licence)
 
+### 🌐 [onehealth-early-warning.vercel.app](https://onehealth-early-warning.vercel.app)
+
 <sub>Hack4Pashudhan · Track 5 (One Health Dashboard) · PGIVER Jaipur</sub><br>
 <sub>Lakkarsu Nanditha · Ch. Vignesh Reddy</sub>
 
-<img src="docs/dashboard.png" alt="The dashboard: a choropleth of 295 districts coloured by four-week outbreak risk, with a ranked watch list" width="100%">
+<img src="docs/dashboard.gif" alt="The dashboard playing through 2021-22: 295 districts shifting from cool to hot as the monsoon arrives, with a ranked watch list beside the map" width="100%">
+
+<sub>Two years of forecasts in fifteen seconds — the map cools in winter and ignites through the monsoon. Not an animation we drew: that is the model's weekly output, played back.</sub>
 
 </div>
 
 ---
 
 ## The problem
+
+> A district veterinary officer can inspect maybe five places a week.
+> There are 295 districts. Which five?
 
 India runs good disease surveillance. It runs it three times, in parallel, with no join:
 

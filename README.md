@@ -25,6 +25,7 @@ districts an officer should look at next.
 ![Panel](https://img.shields.io/badge/district--weeks-123%2C015-5FC0AE?labelColor=555)
 ![Districts](https://img.shields.io/badge/districts-295_%C2%B7_9_states-5FC0AE?labelColor=555)
 ![Rejected](https://img.shields.io/badge/alternatives_tested_and_rejected-4-B3401F?labelColor=555)
+![Coldstart](https://img.shields.io/badge/cold--start_detection-2.6%25_%E2%86%92_9.8%25-1D7A6E?labelColor=555)
 ![Self-checks](https://img.shields.io/badge/every_script-self--checked-C97B2E?labelColor=555)
 
 ![Hackathon](https://img.shields.io/badge/Hack4Pashudhan-Track_5_·_One_Health-0E5A4F?style=flat-square)
@@ -130,9 +131,28 @@ outbreaks that *continue and spread*, and miss ones that *appear out of nowhere*
 | Dry-season weeks | 232 | 20.7% |
 
 A ~29× gap. **This is a tool for allocating follow-up where something is already stirring, not for
-detecting emergence.** Over half of all outbreaks arrive with no warning signal in the open data, and
-for those nothing replaces a report from the ground. Closing that gap needs a leading indicator the
-open data does not carry — veterinary case reports, drug sales, animal movement records.
+detecting emergence.** Over half of all outbreaks arrive with no warning signal in the open data.
+
+**So we attacked it, and the animal layer turned out to be the answer.** Five candidate features
+that are non-zero when nothing has happened yet — cumulative 8-week rainfall, 4-week humidity,
+state-level activity excluding this district and its neighbours, weeks since the last local
+outbreak, and herd size — were each tested against the production model. One worked:
+
+| | Cold-start recall | Overall lift | PR-AUC |
+|---|---|---|---|
+| Production | 2.6% ± 0.3% | 5.42× ± 0.11 | 0.0680 |
+| **+ livestock density** | **9.8% ± 0.2%** | 5.36× ± 0.08 | 0.0674 |
+| + all five candidates | 8.2% ± 1.5% | 4.74× ± 0.26 | 0.0617 |
+
+**Herd size nearly quadruples cold-start detection at no material cost to overall lift**, stable
+across five seeds. This is why it failed the earlier test and passes this one: while recent cases
+are visible nearby, livestock density adds nothing and is drowned out by the activity features.
+When every activity feature is zero, it is the only thing left to rank on.
+
+It is a reallocation, not a free lunch: warm recall falls 57.8% → 46.7%, so at a fixed 5% budget
+roughly 24 recurrence catches are traded for roughly 18 first appearances. We judge a novel
+introduction worth more than another week of a known outbreak, but the production model keeps the
+higher overall lift and we report both. `src/coldstart.py`.
 
 </details>
 
@@ -167,6 +187,11 @@ Adding livestock population, FMD vaccination reach and FMD seroprevalence change
 run-to-run variance. Excluded from the production model, retained in the pipeline and on the
 dashboard. This is expected rather than disappointing: the human diseases in the open data
 (diarrhoeal disease, dengue, malaria, cholera) are not livestock-transmitted.
+
+**But the rejection turned out to be conditional.** Tested against the model's blind spot rather
+than its average, herd size nearly quadruples cold-start detection (2.6% → 9.8%, sd 0.2%). It adds
+nothing while recent activity is visible and almost everything when there is none. A layer can be
+useless on average and decisive in the cases that matter — see *Where it is blind* above.
 
 </details>
 
@@ -340,6 +365,7 @@ python evaluate.py        # seed stability + bootstrap CIs
 python per_disease.py     # one model per disease   (rejected: worse than combined)
 python ablations.py       # horizon sweep + two-hop spread    (two-hop rejected)
 python validation.py      # transfer, confusion matrix, threshold sweep, blind spot
+python coldstart.py       # attacking the blind spot (livestock density: adopted finding)
 ```
 
 Then the dashboard:
@@ -357,7 +383,7 @@ Each one has a named key, and most of those keys already exist inside a governme
 | Where the current version stops | What opens it |
 |---|---|
 | **The zoonotic link is not yet demonstrated.** The open human feed covers diarrhoeal disease, dengue, malaria and cholera — none livestock-transmitted. Brucellosis and anthrax are reported too rarely in open sources to model weekly. | District-level brucellosis and anthrax records from NADRS. The animal layer is already built, mapped and joined; it is waiting on a disease that actually crosses species. |
-| **It reads continuation, not emergence.** Outbreaks with no recent local or neighbouring signal are caught 2.0% of the time, against 57.8% when some signal is present. | A leading indicator the open data does not carry: veterinary case reports, animal-movement permits, or pharmacy sales. Each is collected already — none is published. |
+| **It reads continuation better than emergence.** Outbreaks with no recent local or neighbouring activity — 255 of 473 — are caught 2.6% of the time by the production model, against 57.8% when some signal is present. Adding livestock density lifts that to 9.8%. | A leading indicator the open data does not carry: veterinary case reports, animal-movement permits, or pharmacy sales. Each is collected already — none is published. Herd size is a partial, measured substitute. |
 | **Reported, not observed.** Surveillance records what was *reported*; a better-staffed district reports more at the same true burden. We remove district identity so the model cannot simply learn reporting intensity. | Staffing or testing-volume denominators per district, which would let reporting effort be modelled rather than suppressed. |
 | **Human data ends in 2022.** EpiClim's published coverage stops there. | A standing IHIP data-sharing agreement. The pipeline is already scheduled weekly; it refreshes the moment the feed does. |
 

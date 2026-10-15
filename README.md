@@ -69,9 +69,22 @@ districts an officer should look at next.
 
 India runs good disease surveillance. It runs it three times, in parallel, with no join:
 
-**NADRES** watches livestock outbreaks and never asks whether people later fell ill.
-**IDSP** watches human outbreaks and never looks back at the local animals.
-**IMD and satellites** measure the weather, and are linked to neither.
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontSize":"17px","fontFamily":"IBM Plex Sans, Segoe UI, sans-serif","lineColor":"#5FC0AE","textColor":"#CFE2DE"},"flowchart":{"nodeSpacing":40,"rankSpacing":46,"curve":"basis"}}}%%
+flowchart TB
+  X1["🐄 &nbsp;<b>NADRES</b><br>livestock outbreaks<br><i>never asks if people fell ill</i>"]
+  X2["🧫 &nbsp;<b>IDSP</b><br>human outbreaks<br><i>never looks at the animals</i>"]
+  X3["🌧️ &nbsp;<b>IMD</b><br>rain · temperature<br><i>linked to neither</i>"]
+  Y(["🔗 &nbsp;<b>THIS PROJECT</b> — one weekly table, one model, one map"])
+  X1 -.-> Y
+  X2 -.-> Y
+  X3 -.-> Y
+  classDef silo fill:#1B2A33,stroke:#5B7A86,stroke-width:1.4px,color:#E7EEF1
+  classDef us fill:#5FC0AE,stroke:#A5DDD2,stroke-width:2px,color:#07231F
+  class X1,X2,X3 silo
+  class Y us
+  linkStyle default stroke:#5FC0AE,stroke-width:1.6px,stroke-dasharray:5 4
+```
 
 A district officer who wants to know *"is anything building here?"* has to open three portals and
 hold the answer in their head. This project does the join once, weekly, and ranks the districts.
@@ -82,16 +95,15 @@ hold the answer in their head. This project does the join once, weekly, and rank
 > weeks, against a background rate of 1.6%** — a **5.4× lift, 95% CI 4.6–6.4**, on a test period the
 > model never saw during training.
 
-An officer who can inspect five districts a week finds roughly **five times more outbreaks**
-working down this list than working down a random one.
+| | This model | Random |
+|---|---|---|
+| **Lift over chance** | **5.4×** · CI 4.6–6.4 | 1× |
+| **On unseen states** | **4.7×** | 1× |
+| **Outbreaks caught at 5% effort** | **27.7%** | 5% |
+| **False alarms per catch** | **10.6** | ~60 |
 
-It holds on states the model has never seen — **4.7× mean**, trained on eight states and tested on
-the ninth, because it uses no district identity at all. It catches **27.7% of every outbreak** at 5%
-inspection effort, where random inspection catches 5%. It costs about **10.6 false alarms per
-catch**, where random inspection at this base rate costs around 60.
-
-PR-AUC is 0.068 ± 0.0015 across five seeds — low in absolute terms, which is what a 1.6% base rate
-does. The lift is the number that is stable, and it is the number an officer acts on.
+PR-AUC 0.068 ± 0.0015 over five seeds. Low in absolute terms — that is what a 1.6% base rate does.
+The lift is what is stable, and the lift is what an officer acts on.
 
 <details>
 <summary><b>How much inspection effort is worth it?</b> — the 5% threshold, defended</summary>
@@ -293,10 +305,17 @@ flowchart TB
 that can fail and buys nothing. The pipeline writes static files and the map reads them, so the whole
 thing hosts for free and cannot fall over mid-demo.
 
-pandas and shapely do the joins and the geometry. The model is scikit-learn's
-`HistGradientBoostingClassifier` — strong on small tabular data, handles missing values natively,
-and explains itself. The map is Leaflet on OpenStreetMap, canvas-rendered so 295 polygons can be
-restyled every frame during playback. A weekly GitHub Action re-runs the lot. No API keys anywhere.
+| | |
+|---|---|
+| **Processing** | pandas · shapely |
+| **Model** | scikit-learn `HistGradientBoostingClassifier` |
+| **Dashboard** | Leaflet · OpenStreetMap · canvas renderer |
+| **Refresh** | GitHub Actions, weekly |
+| **API keys needed** | none |
+
+<img src="docs/analytics.png" alt="Three analytics panels: risk through the year, risk by state, and alerts against reported outbreaks" width="100%">
+
+<sub>The three panels under the map: the seasonal shape, where risk concentrates, and whether the alerts actually track reality (r = 0.29).</sub>
 
 ## Method
 
@@ -359,22 +378,12 @@ python -m http.server 8000     # from the project root
 Every boundary below is a property of what is *openly published* in India today, not of the method.
 Each one has a named key, and most of those keys already exist inside a government department.
 
-**The zoonotic link is not yet demonstrated.** The open human feed covers diarrhoeal disease,
-dengue, malaria and cholera — none livestock-transmitted. *Opens with:* district-level brucellosis
-and anthrax from NADRS. The animal layer is built, mapped and joined, waiting on a disease that
-actually crosses species.
-
-**It reads continuation better than emergence.** Outbreaks with no recent activity nearby are
-caught 2.6% of the time, against 57.8% when some signal is present — and herd size lifts that to
-9.8%. *Opens with:* a leading indicator the open data does not carry — veterinary case reports,
-animal-movement permits, pharmacy sales. Each is collected already; none is published.
-
-**Reported, not observed.** Surveillance records what was *reported*, so a better-staffed district
-reports more at the same true burden. *Opens with:* staffing or testing-volume denominators, which
-would let reporting effort be modelled rather than suppressed.
-
-**Human data ends in 2022.** EpiClim's published coverage stops there. *Opens with:* a standing
-IHIP data-sharing agreement — the pipeline is already scheduled weekly.
+| Where it stops | What opens it |
+|---|---|
+| **No zoonotic link yet** — open human data covers diarrhoeal disease, dengue, malaria, cholera. None livestock-transmitted. | District brucellosis + anthrax from NADRS. The animal layer is built and waiting. |
+| **Reads continuation better than emergence** — 2.6% caught with no prior signal nearby, 57.8% with. Herd size lifts it to 9.8%. | Veterinary case reports, movement permits or pharmacy sales. All collected; none published. |
+| **Reported, not observed** — better-staffed districts report more at the same true burden. | Staffing or testing-volume denominators per district. |
+| **Human data ends 2022** — EpiClim's coverage stops there. | A standing IHIP data-sharing agreement. |
 
 Every one of these is a door that opens from the outside. The pipeline, the model and the
 dashboard are already built and already scheduled — they refresh the week any one of these feeds

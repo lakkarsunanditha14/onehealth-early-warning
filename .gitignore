@@ -12,3 +12,8 @@ data/interim/*
 !data/interim/neighbours.json
 !data/interim/predictions.json
 !data/interim/validation.json
+
+# Static inputs that no script regenerates: the 2019 census extract is a fixed
+# table, and both fetch_animal.py and join.py read it. Without it a fresh clone
+# (and the weekly refresh job) cannot build the panel.
+!data/interim/livestock.csv
